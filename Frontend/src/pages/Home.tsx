@@ -26,7 +26,7 @@ export function Home() {
       <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black/40" />
         <img 
-          src="https://images.unsplash.com/photo-1596783060593-c454794e5eef?auto=format&fit=crop&q=80&w=2000" 
+          src="https://th.bing.com/th/id/OIP.uqbJO_Wb6F1X9xKCo9kn-AHaE8?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3"
           alt="Himachal Mountains" 
           className="absolute inset-0 z-[-1] object-cover w-full h-full"
         />
