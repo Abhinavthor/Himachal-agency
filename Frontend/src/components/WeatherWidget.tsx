@@ -7,8 +7,16 @@ interface WeatherData {
   weathercode: number;
 }
 
+interface ForecastDay {
+  date: string;
+  minTemp: number;
+  maxTemp: number;
+  weathercode: number;
+}
+
 export function WeatherWidget({ lat, lng, name }: { lat: number; lng: number; name: string }) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -20,9 +28,9 @@ export function WeatherWidget({ lat, lng, name }: { lat: number; lng: number; na
       try {
         setLoading(true);
         setError(false);
-        // Using Open-Meteo free API
+        // Using Open-Meteo free API with forecast data
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`
         );
         if (!response.ok) throw new Error("Failed to fetch weather");
         
@@ -33,6 +41,16 @@ export function WeatherWidget({ lat, lng, name }: { lat: number; lng: number; na
             temperature: data.current_weather.temperature,
             weathercode: data.current_weather.weathercode,
           });
+          
+          // Process forecast data (next 5 days)
+          const forecastDays = data.daily.time.slice(0, 5).map((date: string, idx: number) => ({
+            date,
+            minTemp: data.daily.temperature_2m_min[idx],
+            maxTemp: data.daily.temperature_2m_max[idx],
+            weathercode: data.daily.weather_code[idx],
+          }));
+          
+          setForecast(forecastDays);
           setLoading(false);
         }
       } catch (err) {
@@ -72,12 +90,17 @@ export function WeatherWidget({ lat, lng, name }: { lat: number; lng: number; na
     return "Unknown";
   }
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg">Live Weather: {name}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {loading ? (
           <div className="flex animate-pulse space-x-4">
             <div className="rounded-full bg-slate-200 h-10 w-10"></div>
@@ -88,13 +111,35 @@ export function WeatherWidget({ lat, lng, name }: { lat: number; lng: number; na
         ) : error ? (
           <div className="text-sm text-destructive">Failed to load weather data.</div>
         ) : weather ? (
-          <div className="flex items-center gap-4">
-            {getWeatherIcon(weather.weathercode)}
-            <div>
-              <div className="text-3xl font-bold">{weather.temperature}°C</div>
-              <div className="text-sm text-muted-foreground">{getWeatherString(weather.weathercode)}</div>
+          <>
+            {/* Current Weather */}
+            <div className="flex items-center gap-4 pb-4 border-b">
+              {getWeatherIcon(weather.weathercode)}
+              <div>
+                <div className="text-3xl font-bold">{weather.temperature}°C</div>
+                <div className="text-sm text-muted-foreground">{getWeatherString(weather.weathercode)}</div>
+              </div>
             </div>
-          </div>
+
+            {/* Forecast */}
+            <div>
+              <h4 className="text-sm font-semibold mb-2">5-Day Forecast</h4>
+              <div className="grid grid-cols-5 gap-2">
+                {forecast.map((day, idx) => (
+                  <div key={idx} className="rounded-lg bg-muted p-2 text-center text-xs">
+                    <div className="font-semibold mb-1">{formatDate(day.date)}</div>
+                    <div className="flex justify-center mb-1">
+                      {getWeatherIcon(day.weathercode)}
+                    </div>
+                    <div className="text-xs">
+                      <div className="font-semibold">{Math.round(day.maxTemp)}°</div>
+                      <div className="text-muted-foreground">{Math.round(day.minTemp)}°</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         ) : null}
       </CardContent>
     </Card>
